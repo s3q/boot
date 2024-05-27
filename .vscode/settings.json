@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "rpc.h": "c",
+        "wbemidl.h": "c",
+        "stdio.h": "c"
+    }
+}

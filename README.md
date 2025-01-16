@@ -20,14 +20,18 @@ A(Hacker in website) -- "HTTP" --> B{server}
 B -- "WebSocket" --> C(victim)
  
 ```
-For runing the code and test it:
+Running the code and test it:
+
 Clone the repository 
 `git clone https://github.com/s3q/boot.git`
+
 run client
 `py client.py`
+
 run server
 `npm install`
 `node index`
+
 run the website
 `flutter run -d chrome`
 

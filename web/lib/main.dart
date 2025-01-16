@@ -26,22 +26,35 @@ class MyApp extends StatelessWidget {
         // Notice that the counter didn't reset back to zero; the application
         // is not restarted.
 
-        
+        inputDecorationTheme: const InputDecorationTheme(
+          enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(width: 2, color: Colors.white70)
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(width: 2, color: Color(0xFFF2AE40)),
+                      ),
+          //  border: OutlineInputBorder(borderSide: BorderSide(width: 2, color: Colors.orange)),
+      filled: true,
+      fillColor: Color.fromARGB(255, 0, 0, 0),
+      contentPadding: EdgeInsets.all(10),
+      labelStyle: TextStyle(color: Colors.white70),
+      helperStyle: TextStyle(color: Colors.white70)
+        ),
         colorScheme: const ColorScheme(
           brightness: Brightness.light,
           // primary: Colors.black,
-          primary: Color(0xFFF6BD60),
-          onPrimary: Colors.white54,
+          primary: Color(0xFFF2AE40),
+          // primary: Color(0xFFF2AE40),
+          onPrimary: Colors.black,
           secondary: Colors.black,
           // secondary: ColorsHelper.green,
-          onSecondary: Colors.white54,
-          
+          onSecondary: Colors.white70,
           error: Color(0xFFF28482),
-          onError: Colors.white54,
+          onError: Colors.white70,
           background: Colors.black,
-          onBackground: Colors.white54,
+          onBackground: Colors.white70,
           surface: Colors.black,
-          onSurface: Colors.white54,
+          onSurface: Colors.white70,
           
         ),
         backgroundColor: Theme.of(context).hintColor,
@@ -60,20 +73,20 @@ class MyApp extends StatelessWidget {
           headlineSmall: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.bold,
-            color: Colors.white54,
+            color: Colors.white70,
           ),
           headlineMedium: TextStyle(
             fontWeight: FontWeight.bold,
-            fontSize: 22,
-            color: Colors.white54,
+            fontSize: 25,
+            color: Colors.white70,
           ),
           headlineLarge: TextStyle(
             //   fontWeight: FontWeight.bold,
-            color: Colors.white54,
+            color: Colors.white70,
           ),
           bodyLarge: TextStyle(
             fontSize: 20,
-            color: Colors.white54, // Colors.gray[800]
+            color: Colors.white70, // Colors.gray[800]
           ),
           bodyMedium: TextStyle(
             fontSize: 16,
@@ -86,16 +99,16 @@ class MyApp extends StatelessWidget {
           ),
           titleLarge: TextStyle(
             fontSize: 20,
-            color: Colors.white54, // Colors.gray[800]
+            color: Colors.white70, // Colors.gray[800]
           ),
           titleMedium: TextStyle(
             //   fontWeight: FontWeight.bold,
             fontSize: 16,
-            color: Colors.white54, // Colors.gray[800]
+            color: Colors.white70, // Colors.gray[800]
           ),
           titleSmall: TextStyle(
             fontSize: 14,
-            color: Colors.white54, // Colors.gray[800]
+            color: Colors.white70, // Colors.gray[800]
           ),
         ),
         textButtonTheme: TextButtonThemeData(
@@ -115,7 +128,7 @@ class MyApp extends StatelessWidget {
             //     ),
 
             ),
-        inputDecorationTheme: InputDecorationTheme(labelStyle: TextStyle(color: Colors.white54)),
+        // inputDecorationTheme: InputDecorationTheme(labelStyle: TextStyle(color: Colors.white70)),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ButtonStyle(
             //   padding: MaterialStateProperty.all(
@@ -138,10 +151,10 @@ class MyApp extends StatelessWidget {
             //   padding:
             //       EdgeInsets.symmetric(vertical: 10, horizontal: 40),
             elevation: 0,
-            foregroundColor: Colors.white54,
+            foregroundColor: Colors.white70,
             textStyle: TextStyle(
               // fontFamily: AppHelper.returnText(context, "", "Vazirmatn"),
-              color: Colors.white54,
+              color: Colors.white70,
               fontSize: 16,
               // fontWeight: FontWeight.bold,
             ),

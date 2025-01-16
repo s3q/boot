@@ -1,6 +1,9 @@
-const net = require("net");
+const net = require("node:net");
 const express = require("express");
 const uuid = require("uuid");
+const { encode } = require("node:punycode");
+const { randomInt } = require("node:crypto");
+const http = require("http");
 const fs = require("fs");
 const WebSocket = require("ws");
 const bluebird = require("bluebird");
@@ -17,7 +20,6 @@ function removeDuplicate(string, deprecated) {
 let webSocket = null;
 serverWebSocket.on("connection", (socket) => {
   console.log("New websocket client.");
-  socket.send("Connected#0&")
   webSocket = socket;
 });
 
@@ -58,7 +60,6 @@ const server = net.createServer((socket) => {
     }
 
     const clientIdentifier = data.id.toString().trim().slice(0, 36);
-    
     console.log("New Client:", clientIdentifier);
 
     if (uuid.validate(clientIdentifier)) {
@@ -83,6 +84,8 @@ const server = net.createServer((socket) => {
     socket.destroy();
   });
 });
+
+/// ???????????????
 
 app.post("/install", async (req, res) => {
   const tool = req.query.tool;
@@ -125,40 +128,35 @@ app.get("/stream_command", async (req, res) => {
   }
 
   try {
-    const clientSocket = clients[id].socket;
+    await clients[id].socket.removeAllListeners("data");
 
-    clientSocket.removeAllListeners("data");
-
-    clientSocket.write(command.toString());
+    clients[id].socket.write(command.toString());
 
     const promise1 = new bluebird.Promise((resolve, reject) => {
-      let accumulatedData = "";
-
-      const onData = (data) => {
+      clients[id].socket.on("data", async (data) => {
         try {
-          const dataString = data.toString().trim();
-          console.log(`Data received from client ${id}: ${dataString}`);
+          console.log(
+            `Data received from client ${id}: ${data.toString().trim()}`
+          );
 
-          if (dataString.includes("sTop#0&")) {
+          if (data.toString().trim() === "sTop#0&") {
             console.log("Cancel promise 1");
-            clientSocket.removeListener("data", onData);
-            resolve(accumulatedData);
+            await clients[id].socket.removeAllListeners("data");
+            promise1.cancel();
             return;
           }
-          const commandOutput = removeDuplicate(dataString, "s#1&");
-          accumulatedData += commandOutput;
-          if (webSocket != null) {
-              webSocket.send(commandOutput);
-          }
+
+          const commandOutput = removeDuplicate(data.toString().trim(), "s#1&");
+          return await webSocket.send(commandOutput);
         } catch (err) {
           console.log("Error processing data:", err);
-          reject(err);
+          return;
         }
-      };
-      clientSocket.on("data", onData);
+      });
     });
-    const output = await promise1;
-    res.send(output);
+
+    await bluebird.Promise.all([promise1]);
+    res.send("Command executed successfully");
   } catch (err) {
     console.log("Error in /stream_command:", err);
     res.status(500).send("Internal Server Error");
@@ -166,7 +164,6 @@ app.get("/stream_command", async (req, res) => {
 });
 
 app.get("/command", async (req, res) => {
-
   const command = req.query.command;
   const id = req.query.id;
 

